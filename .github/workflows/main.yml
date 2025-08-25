@@ -1,0 +1,54 @@
+name: GPT
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  FTP-Deploy-Action:
+    name: 🎉 Deploy GPT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: cache-node-modules
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm install
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+          CI: false
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Check dist directory exists
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Dist directory does not exist! Check your build script output."
+            exit 1
+          fi
+
+      - name: Sync folders and files to the server
+        uses: SamKirkland/FTP-Deploy-Action@4.3.3
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: dist/
+          protocol: ftps
