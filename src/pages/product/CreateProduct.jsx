@@ -128,6 +128,8 @@ export const CreateProduct = () => {
         setPreviewUrl(URL.createObjectURL(f));
     };
 
+    
+
     useEffect(() => {
         fetchCategories();
         fetchSize();

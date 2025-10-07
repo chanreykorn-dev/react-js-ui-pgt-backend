@@ -11,43 +11,38 @@ export const AuthProvider = ({ children }) => {
 
     // 🟡 Runs once on page load (after refresh)
     useEffect(() => {
-        const fetchUser = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const res = await api.get("/role/me", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setUser(res.data); // ✅ Set user if valid token
-            } catch (err) {
-                console.error("Error validating token:", err.message);
-                localStorage.removeItem("token");
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUser();
+        // Decode JWT to restore user info on refresh
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setLoading(false);
+            return;
+        }
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            setUser({
+                email: payload.sub,
+                role: payload.role,
+                id: payload.user_id,
+                permissions: payload.permissions || [],
+            });
+        } catch (err) {
+            localStorage.removeItem("token");
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    const login = async (username, password) => {
-        const res = await api.post("/login", { username, password });
-        localStorage.setItem("token", res.data.token);
-
-        // ✅ Immediately fetch and set user
-        const userRes = await api.get("/role/me", {
-            headers: {
-                Authorization: `Bearer ${res.data.token}`,
-            },
+    const login = async (email, password) => {
+        const res = await api.post("/auth/login", { email, password });
+        const { token, role, user_id, permissions } = res.data;
+        localStorage.setItem("token", token);
+        setUser({
+            email,
+            role,
+            id: user_id,
+            permissions: permissions || [],
         });
-        setUser(userRes.data);
     };
 
     const logout = () => {

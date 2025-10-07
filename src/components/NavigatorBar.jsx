@@ -1,7 +1,8 @@
 import React from 'react';
 import Avatar from '@mui/material/Avatar';
+import { jwtDecode } from 'jwt-decode'; // default import
 
-// Generate consistent color from string
+// Generate a consistent color from a string
 function stringToColor(string) {
     let hash = 0;
     for (let i = 0; i < string.length; i++) {
@@ -34,32 +35,27 @@ function stringAvatar(name) {
     };
 }
 
-// Avatar component that reads user from token
+// Avatar component that reads username from token
 export default function BackgroundLetterAvatars() {
     const token = localStorage.getItem('token');
     let username = 'Guest User';
 
     if (token) {
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            username = payload.username || 'Guest User';
+            const decoded = jwtDecode(token);
+            username = decoded.username || decoded.name || 'Guest User';
         } catch (err) {
-            console.error('Invalid token format', err);
+            console.error('Invalid token', err);
         }
     }
 
-    // Ensure at least 2 words for initials
-    const safeName = username.trim().includes(' ')
-        ? username
-        : `${username}`;
-
-    return <Avatar {...stringAvatar(safeName)} />;
+    return <Avatar {...stringAvatar(username)} />;
 }
 
 // Header component
 export const NavigatorBar = ({ toggleSidebar }) => {
     return (
-        <header className="bg-white shadow-md p-4 flex justify-between items-center md:ml-full">
+        <header className="bg-gray-100 shadow-md p-4 flex justify-between items-center md:ml-full">
             <div className="flex items-center">
                 <button
                     onClick={toggleSidebar}
